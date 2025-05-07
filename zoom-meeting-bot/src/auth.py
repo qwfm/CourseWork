@@ -19,7 +19,6 @@ class ZoomAuth:
         if self._token and time.time() < self._expires_at:
             return self._token
 
-        # Інакше запитуємо новий
         resp = requests.post(
             self.TOKEN_URL,
             params={
@@ -32,7 +31,6 @@ class ZoomAuth:
         if "access_token" not in data:
             raise RuntimeError(f"Не вдалося отримати токен: {data}")
 
-        # Кешуємо токен та час життя (мінус 60 секунд «про запас»)
         self._token      = data["access_token"]
         expires_in       = data.get("expires_in", 3600)
         self._expires_at = time.time() + expires_in - 60
