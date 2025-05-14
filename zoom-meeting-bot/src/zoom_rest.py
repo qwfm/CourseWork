@@ -18,7 +18,7 @@ class ZoomREST:
         url = f"{self.base_url}/users/me/meetings"
         payload = {
             "topic": topic,
-            "type": 2,  # scheduled meeting
+            "type": 2,  
             "start_time": start_time,
             "duration": duration
         }

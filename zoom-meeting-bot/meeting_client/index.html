@@ -2,51 +2,51 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Zoom Bot Meeting</title>
+  <title>Zoom Bot Meeting (SDK 3.x)</title>
 
-  <!-- Zoom SDK Styles -->
-  <link rel="stylesheet" href="https://source.zoom.us/2.18.0/css/bootstrap.css" />
-  <link rel="stylesheet" href="https://source.zoom.us/2.18.0/css/react-select.css" />
-
-  <!-- Zoom SDK Dependencies -->
-  <script src="https://source.zoom.us/2.18.0/lib/vendor/react.min.js"></script>
-  <script src="https://source.zoom.us/2.18.0/lib/vendor/react-dom.min.js"></script>
-  <script src="https://source.zoom.us/2.18.0/lib/vendor/redux.min.js"></script>
-  <script src="https://source.zoom.us/2.18.0/lib/vendor/redux-thunk.min.js"></script>
-  <script src="https://source.zoom.us/2.18.0/lib/vendor/lodash.min.js"></script>
-
-  <!-- Zoom SDK with onload handler -->
-  <script src="https://source.zoom.us/2.18.0/zoom-meeting-2.18.0.min.js" onload="initializeZoom()"></script>
+  <!-- CSS для Web SDK -->
+  <link rel="stylesheet" href="https://source.zoom.us/3.13.1/css/bootstrap.css" />  
+  <link rel="stylesheet" href="https://source.zoom.us/3.13.1/css/react-select.css" />
 
   <style>
-    #zmmtg-root { width: 100%; height: 100%; }
-    body { margin: 0; padding: 0; height: 100vh; }
+    html, body { margin:0; padding:0; height:100%; }
+    #zmmtg-root { width:100%; height:100%; }
+    #aria-alert { position:absolute; top:0; left:0; }
+    #chat-container {
+      position:absolute; top:10px; left:10px; z-index:999;
+      background:rgba(255,255,255,0.8); padding:8px; border-radius:4px;
+    }
   </style>
 </head>
 <body>
-  <!-- Zoom SDK Containers -->
-  <div id="zmmtg-root"></div>
+  <!-- Контейнери, які очікує знайти SDK -->
+  <div id="zmmtg-root"></div>  
   <div id="aria-alert"></div>
 
-  <!-- Chat Bot Controls -->
-  <div style="position: absolute; top: 10px; left: 10px; z-index: 999;">
+  <!-- Інтерфейс чату -->
+  <div id="chat-container">
     <input id="chatInput" placeholder="Type message..." />
-    <button onclick="sendBotChat()">Send</button>
+    <button id="sendBtn">Send</button>
   </div>
 
-  <!-- Script to initialize Zoom and load meeting.js -->
-  <script>
-    function initializeZoom() {
-      // Configure Zoom SDK
-      ZoomMtg.setZoomJSLib('https://source.zoom.us/2.18.0/lib', '/av');
-      ZoomMtg.preLoadWasm();
-      ZoomMtg.prepareJssdk();
+  <!-- 1) Залежності (React, Redux, Lodash) -->
+  <script src="https://source.zoom.us/3.13.1/lib/vendor/react.min.js"></script>  
+  <script src="https://source.zoom.us/3.13.1/lib/vendor/react-dom.min.js"></script>  
+  <script src="https://source.zoom.us/3.13.1/lib/vendor/redux.min.js"></script>  
+  <script src="https://source.zoom.us/3.13.1/lib/vendor/redux-thunk.min.js"></script>  
+  <script src="https://source.zoom.us/3.13.1/lib/vendor/lodash.min.js"></script>  
 
-      // Dynamically load meeting.js after SDK is ready
-      const meetingScript = document.createElement('script');
-      meetingScript.src = 'meeting.js';
-      document.body.appendChild(meetingScript);
-    }
+  <!-- 2) Сам SDK 3.13.1 -->
+  <script src="https://source.zoom.us/3.13.1/zoom-meeting-3.13.1.min.js"></script> :contentReference[oaicite:0]{index=0}
+
+  <!-- 3) Підготовка WASM та JSSDK -->
+  <script>
+    ZoomMtg.setZoomJSLib('https://source.zoom.us/3.13.1/lib', '/av');  
+    ZoomMtg.preLoadWasm();  
+    ZoomMtg.prepareWebSDK();  <!-- замість prepareJssdk() :contentReference[oaicite:1]{index=1} -->
   </script>
+
+  <!-- 4) Ваш код -->
+  <script src="meeting.js"></script>
 </body>
 </html>
