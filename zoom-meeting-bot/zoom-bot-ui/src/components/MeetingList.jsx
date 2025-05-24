@@ -11,10 +11,8 @@ export default function MeetingList() {
   }, []);
 
   useEffect(() => {
-    // початкове завантаження
     loadMeetings();
 
-    // підписка на подію створення зустрічі
     const handler = () => loadMeetings();
     window.addEventListener('meetingCreated', handler);
 
@@ -26,7 +24,6 @@ export default function MeetingList() {
   const handleDelete = async id => {
     if (!window.confirm('Видалити зустріч?')) return;
     await fetch(`${process.env.REACT_APP_API_BASE_URL}/meetings/${id}`, { method: 'DELETE' });
-    // локально видаляємо без перезапиту
     setMeetings(ms => ms.filter(m => m.id !== id));
   };
 
