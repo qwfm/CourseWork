@@ -1,38 +1,88 @@
 import React, { useState } from 'react';
 
-export default function MeetingForm() {
+const MeetingForm = () => {
   const [topic, setTopic] = useState('');
   const [startTime, setStartTime] = useState('');
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState('');
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const resp = await fetch(`${process.env.REACT_APP_API_BASE_URL}/meetings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, start_time: startTime, duration })
-    });
-    const data = await resp.json();
-    alert(`Created meeting ID: ${data.id}`);
-    setTopic(''); setStartTime(''); setDuration(30);
+
+    const isoDate = parseCustomDate(startTime);
+    if (!isoDate) {
+      alert('Неправильний формат дати. Використовуйте дд.мм.рррр гг:хх');
+      return;
+    }
+
+    try {
+      const resp = await fetch(`${process.env.REACT_APP_API_BASE_URL}/meetings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic,
+          start_time: isoDate,
+          duration: parseInt(duration, 10),
+        }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      console.log('Зустріч створено:', data);
+      alert('Зустріч створено!');
+      window.dispatchEvent(new Event('meetingCreated'));
+
+      setTopic('');
+      setStartTime('');
+      setDuration('');
+    } catch (error) {
+      console.error('Помилка при створенні зустрічі:', error);
+      alert('Не вдалося створити зустріч. Перевірте консоль для деталей.');
+    }
+  };
+
+  const parseCustomDate = (input) => {
+    const regex = /^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})$/;
+    const match = input.match(regex);
+    if (!match) return null;
+
+    const [ , day, month, year, hours, minutes ] = match;
+    const date = new Date(year, month - 1, day, hours, minutes);
+    return isNaN(date.getTime()) ? null : date.toISOString();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-6 p-4 rounded shadow">
-      <h2 className="text-xl font-semibold mb-2">Create Meeting</h2>
-      <div className="mb-2">
-        <label className="block">Topic</label>
-        <input value={topic} onChange={e => setTopic(e.target.value)} className="border p-1 w-full" />
+    <form onSubmit={handleSubmit}>
+      <div>
+        <label>Тема зустрічі:</label>
+        <input
+          type="text"
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          required
+        />
       </div>
-      <div className="mb-2">
-        <label className="block">Start Time (ISO)</label>
-        <input value={startTime} onChange={e => setStartTime(e.target.value)} className="border p-1 w-full" />
+      <div>
+        <label>Дата та час початку (дд.мм.рррр гг:хх):</label>
+        <input
+          type="text"
+          value={startTime}
+          onChange={(e) => setStartTime(e.target.value)}
+          placeholder="23.05.2025 14:30"
+          required
+        />
       </div>
-      <div className="mb-4">
-        <label className="block">Duration (minutes)</label>
-        <input type="number" value={duration} onChange={e => setDuration(e.target.value)} className="border p-1 w-full" />
+      <div>
+        <label>Тривалість (хвилини):</label>
+        <input
+          type="number"
+          min="1"
+          value={duration}
+          onChange={(e) => setDuration(e.target.value)}
+          required
+        />
       </div>
-      <button type="submit" className="bg-blue-500 text-white px-3 py-1 rounded">Create</button>
+      <button type="submit">Створити зустріч</button>
     </form>
   );
-}
+};
+
+export default MeetingForm;

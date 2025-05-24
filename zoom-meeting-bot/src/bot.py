@@ -4,8 +4,7 @@ from dotenv import load_dotenv
 import shlex
 from src.zoom_rest import ZoomREST
 from src.zoom_chat import ZoomChat
-from src.zoom_signature import generate_signature
-
+from datetime import datetime
 load_dotenv()  
 
 class CommandHandler:
@@ -13,16 +12,17 @@ class CommandHandler:
         self.zoom_rest = ZoomREST()
         self.zoom_chat = ZoomChat()
         self.ngrok_domain = os.getenv("NGROK_DOMAIN")
-        self.sdk_key = os.getenv("ZOOM_SDK_KEY")
 
     def handle_create(self, args):
-        """Створити зустріч: create <topic> <start_time> <duration>"""
-        if len(args) < 3:
-            print("Usage: create <topic> <start_time> <duration>")
+        date_str = args.date  
+        try:
+            dt = datetime.strptime(date_str, '%d.%m.%Y %H:%M')
+        except ValueError:
+            print("Невірний формат дати. Очікується 'ДД.MM.РРРР ГГ:ХХ'")
             return
-        topic, start, dur = args[0], args[1], args[2]
-        result = self.zoom_rest.create_meeting(topic, start, int(dur))
-        print("Meeting created:", result.get("id"), result.get("join_url"))
+        iso_date = dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+        
+        print(f"Отримана дата: {iso_date}")
 
     def handle_get(self, args):
         """Отримати список зустрічей: get"""

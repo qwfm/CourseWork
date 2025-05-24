@@ -10,7 +10,6 @@ load_dotenv()
 
 def generate_signature(meeting_number: str, role: int = 0) -> str:
     """
-    Генерує JWT-підпис для Zoom Web SDK.
     :param meeting_number: ID конференції (string або number as string)
     :param role: 0 — учасник, 1 — хост
     :return: JWT-signature

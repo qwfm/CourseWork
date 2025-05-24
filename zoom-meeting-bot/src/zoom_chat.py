@@ -26,7 +26,7 @@ class ZoomChat:
       }
       payload = {k: v for k, v in payload.items() if v is not None}
     
-      print("[DEBUG] Payload:", payload)  # Додано логування
+      print("[DEBUG] Payload:", payload)  
     
       try:
         resp = requests.post(url, headers=self._headers(), json=payload)
@@ -34,7 +34,7 @@ class ZoomChat:
         return resp.json()
       except requests.exceptions.HTTPError as e:
         error_details = resp.json()
-        print(f"Zoom API Error: {error_details}")  # Вивід деталей помилки
+        print(f"Zoom API Error: {error_details}") 
         raise RuntimeError(f"Failed to send message: {error_details.get('message')}") from e
     
     def get_channels(self):
