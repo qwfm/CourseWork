@@ -2,6 +2,9 @@ import os
 import webbrowser
 from dotenv import load_dotenv
 import shlex
+import re
+from datetime import datetime, timezone
+from threading import Timer
 from src.zoom_rest import ZoomREST
 from src.zoom_chat import ZoomChat
 from datetime import datetime
@@ -52,30 +55,51 @@ class CommandHandler:
         print("Deleted" if ok else "Failed to delete")
 
     def handle_chat(self, args):
-       if len(args) < 2:
-         print("Usage: chat <to> <message> [--schedule YYYY-MM-DDTHH:MM:SS]")
-         return
-
-       # Парсинг аргументів
-       schedule_time = None
-       if "--schedule" in args:
-        try:
-            schedule_index = args.index("--schedule")
-            schedule_time = args[schedule_index + 1]
-            args = args[:schedule_index] + args[schedule_index + 2:]
-        except IndexError:
-            print("Invalid schedule time format")
+        """
+        chat <to> <message words...> [дд.мм.рррр гг:хх]
+        Якщо в кінці є валідні дата+час у форматі дд.мм.рррр гг:хх –
+        буде планування в локальній зоні.
+        """
+        if len(args) < 2:
+            print("Usage: chat <to> <message> [дд.мм.рррр гг:хх]")
             return
 
-       to_jid, message = args[0], " ".join(args[1:])
-    
-       # Відправка
-       if schedule_time:
-        self._schedule_message(to_jid, message, schedule_time)
-        print(f"Message scheduled for {schedule_time}")
-       else:
-        resp = self.zoom_chat.send_message(to_jid, message)
-        print("Sent immediately:", resp)
+        schedule_dt = None
+        date_pat = re.compile(r'^\d{2}\.\d{2}\.\d{4}$')
+        time_pat = re.compile(r'^\d{2}:\d{2}$')
+
+        if len(args) >= 3 and date_pat.match(args[-2]) and time_pat.match(args[-1]):
+            ds, ts = args[-2], args[-1]
+            try:
+                local_dt = datetime.strptime(f"{ds} {ts}", "%d.%m.%Y %H:%M")
+                local_tz = datetime.now().astimezone().tzinfo
+                local_dt = local_dt.replace(tzinfo=local_tz)
+                schedule_dt = local_dt.astimezone(timezone.utc)
+                args = args[:-2]
+            except ValueError:
+                print("Невірний формат дати/часу. Використовуйте дд.мм.рррр гг:хх")
+                return
+
+        to_jid = args[0]
+        message = " ".join(args[1:])
+
+        if schedule_dt:
+            self._schedule_message(to_jid, message, schedule_dt)
+            print("Повідомлення заплановано на",
+                  schedule_dt.astimezone().strftime("%d.%m.%Y %H:%M"))
+        else:
+            resp = self.zoom_chat.send_message(to_jid, message)
+            print("Відправлено негайно:", resp)
+
+    def _schedule_message(self, to_jid, message, utc_dt):
+        """Планує виклик send_message у заданий UTC-час."""
+        now_utc = datetime.now(timezone.utc)
+        delay = (utc_dt - now_utc).total_seconds()
+        if delay <= 0:
+            print("Час у минулому — надсилаю зараз.")
+            self.zoom_chat.send_message(to_jid, message)
+        else:
+            Timer(delay, lambda: self.zoom_chat.send_message(to_jid, message)).start()
         
     def handle_get_channels(self, args=None):
         """Отримати список каналів: get_channels"""
@@ -90,26 +114,6 @@ class CommandHandler:
                 
         except Exception as e:
             print(f"Error: {str(e)}")
-
-    def _schedule_message(self, to_jid, message, schedule_time):
-      """Додає повідомлення в чергу з таймером"""
-      from datetime import datetime, timezone
-      from threading import Timer
-    
-      try:
-        scheduled = datetime.fromisoformat(schedule_time).astimezone(timezone.utc)
-        now = datetime.now(timezone.utc)
-        delay = (scheduled - now).total_seconds()
-        
-        if delay < 0:
-            print("Cannot schedule in past. Sending now.")
-            self.zoom_chat.send_message(to_jid, message)
-            return
-            
-        Timer(delay, self.zoom_chat.send_message, args=(to_jid, message)).start()
-        
-      except ValueError as e:
-        print(f"Invalid time format: {e}. Use ISO 8601 (e.g. 2023-12-31T23:59:00+02:00)")
 
     def handle_join(self, args):
         """Приєднатися до конференції як бот: join <meeting_id>"""
