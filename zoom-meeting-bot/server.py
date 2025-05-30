@@ -1,4 +1,6 @@
 import os
+from threading import Timer
+from datetime import datetime, timezone
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from src.zoom_rest import ZoomREST
@@ -35,7 +37,39 @@ def delete_meeting(mid):
 @app.route('/api/chat', methods=['POST'])
 def send_chat():
     data = request.get_json()
-    resp = zoom_chat.send_message(data['to'], data['message'])
+    to_jid = data['to']
+    message = data['message']
+    schedule_time_str = data.get('schedule_time')  # Може бути None
+
+    # Якщо вказано час планування
+    if schedule_time_str:
+        try:
+            # Конвертуємо рядок у datetime (ISO формат)
+            schedule_time = datetime.fromisoformat(schedule_time_str).astimezone(timezone.utc)
+            now = datetime.now(timezone.utc)
+            
+            # Розрахунок затримки в секундах
+            delay = (schedule_time - now).total_seconds()
+            
+            # Якщо час вже минув, відправляємо негайно
+            if delay <= 0:
+                resp = zoom_chat.send_message(to_jid, message)
+                return jsonify(resp)
+            
+            # Запускаємо таймер для відкладеної відправки
+            Timer(delay, zoom_chat.send_message, args=(to_jid, message)).start()
+            
+            return jsonify({
+                "status": "scheduled",
+                "scheduled_time": schedule_time.isoformat()
+            })
+        
+        except Exception as e:
+            logging.error(f"Schedule error: {e}. Sending immediately")
+            # У разі помилки - відправляємо негайно
+    
+    # Якщо планування не вказано або виникла помилка - відправляємо негайно
+    resp = zoom_chat.send_message(to_jid, message)
     return jsonify(resp)
 
 @app.route('/api/channels', methods=['GET'])
